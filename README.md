@@ -2,6 +2,8 @@
 
 **Agentic software development platform. Spec in. Software out.**
 
+Demo at https://chetantyagi.com/nst/
+
 Cog takes a structured Low-Level Design as input, distributes implementation work across a fleet of specialized AI agents running in parallel, and delivers a fully integrated, traceable codebase as output.
 
 You define what needs to be built. Cog executes it.
@@ -12,7 +14,7 @@ You define what needs to be built. Cog executes it.
 
 Most AI coding tools make developers faster. Cog removes developers from execution entirely.
 
-You fill a structured spec form — modules, data models, API contracts, constraints. Cog reads it, decomposes the work, assigns specialized agents to each module, and runs them in parallel. Every decision is logged. Every step is backed up. Progress is readable at any level of detail, from a one-line summary for a client to raw execution logs for a developer.
+You fill a structured spec form - modules, data models, API contracts, constraints. Cog reads it, decomposes the work, assigns specialized agents to each module, and runs them in parallel. Every decision is logged. Every step is backed up. Progress is readable at any level of detail, from a one-line summary for a client to raw execution logs for a developer.
 
 When all modules are done, an integration agent validates the interfaces, wires everything together, and runs end-to-end tests against the spec. You get a working, integrated codebase you can export directly to GitHub.
 
