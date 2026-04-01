@@ -8,10 +8,11 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 import torchvision.models as models
 from PIL import Image
+import json
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from typing import List
 import os
@@ -144,53 +145,79 @@ class StyleRequest(BaseModel):
 
 
 @app.post("/stylize")
-async def stylize(req: StyleRequest):
+def stylize(req: StyleRequest):
     global is_busy
     if is_busy:
         raise HTTPException(503, "Server is busy — another request is being processed")
     is_busy = True
-    try:
-        if len(req.style_layer_weights) != 5:
-            raise HTTPException(400, "style_layer_weights must have exactly 5 values")
-        total = sum(req.style_layer_weights)
-        if total == 0:
-            raise HTTPException(400, "weights must not all be zero")
-        normalized_weights = [w / total for w in req.style_layer_weights]
 
+    def sse(data: dict) -> str:
+        return f"data: {json.dumps(data)}\n\n"
+
+    def generate():
+        global is_busy
         try:
-            content_img = b64_to_tensor(req.content_b64)
-            style_img   = b64_to_tensor(req.style_b64)
+            if len(req.style_layer_weights) != 5:
+                yield sse({"type": "error", "msg": "style_layer_weights must have exactly 5 values"})
+                return
+            total = sum(req.style_layer_weights)
+            if total == 0:
+                yield sse({"type": "error", "msg": "weights must not all be zero"})
+                return
+            normalized_weights = [w / total for w in req.style_layer_weights]
+
+            yield sse({"type": "log", "msg": "loading images"})
+            try:
+                content_img = b64_to_tensor(req.content_b64)
+                style_img   = b64_to_tensor(req.style_b64)
+            except Exception as e:
+                yield sse({"type": "error", "msg": f"invalid image data: {e}"})
+                return
+
+            yield sse({"type": "log", "msg": "building model"})
+            input_img = content_img.clone()
+            input_img.requires_grad_(True)
+            model, style_losses, content_losses = build_model(style_img, content_img, normalized_weights)
+            model.requires_grad_(False)
+            optimizer = optim.LBFGS([input_img])
+
+            yield sse({"type": "log", "msg": f"optimizing on {device} for {req.num_steps} steps"})
+
+            run = [0]
+            last_loss = [0.0]
+
+            while run[0] <= req.num_steps:
+                def closure():
+                    with torch.no_grad():
+                        input_img.clamp_(0, 1)
+                    optimizer.zero_grad()
+                    model(input_img)
+                    s_score = sum(sl.loss for sl in style_losses) * req.style_weight
+                    c_score = sum(cl.loss for cl in content_losses) * req.content_weight
+                    loss = s_score + c_score
+                    loss.backward()
+                    run[0] += 1
+                    last_loss[0] = loss.item()
+                    return loss
+                optimizer.step(closure)
+                yield sse({"type": "progress", "step": run[0], "total": req.num_steps, "loss": round(last_loss[0], 1)})
+
+            with torch.no_grad():
+                input_img.clamp_(0, 1)
+
+            yield sse({"type": "log", "msg": "encoding output"})
+            yield sse({"type": "result", "output_b64": tensor_to_b64(input_img)})
+
         except Exception as e:
-            raise HTTPException(400, f"Invalid image data: {e}")
+            yield sse({"type": "error", "msg": str(e)})
+        finally:
+            is_busy = False
 
-        input_img = content_img.clone()
-        input_img.requires_grad_(True)
-
-        model, style_losses, content_losses = build_model(style_img, content_img, normalized_weights)
-        model.requires_grad_(False)
-        optimizer = optim.LBFGS([input_img])
-
-        run = [0]
-        while run[0] <= req.num_steps:
-            def closure():
-                with torch.no_grad():
-                    input_img.clamp_(0, 1)
-                optimizer.zero_grad()
-                model(input_img)
-                s_score = sum(sl.loss for sl in style_losses) * req.style_weight
-                c_score = sum(cl.loss for cl in content_losses) * req.content_weight
-                loss = s_score + c_score
-                loss.backward()
-                run[0] += 1
-                return loss
-            optimizer.step(closure)
-
-        with torch.no_grad():
-            input_img.clamp_(0, 1)
-
-        return {"output_b64": tensor_to_b64(input_img)}
-    finally:
-        is_busy = False
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.get("/")
