@@ -184,6 +184,10 @@ async def stylize(req: StyleRequest):
     return {"output_b64": tensor_to_b64(input_img)}
 
 
+@app.get("/")
+def root():
+    return {"name": "Granular Neural Style Transfer", "status": "running", "endpoints": ["/stylize", "/health"]}
+
 @app.get("/health")
 def health():
     return {"status": "ok", "device": str(device)}
