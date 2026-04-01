@@ -27,7 +27,7 @@ The sliders let you set independent weights for each layer (layer-wise style wei
 - Python 3.10+
 - Node.js 18+
 - ~2GB RAM (VGG-19 loads into memory on startup)
-- GPU optional but recommended (CPU runs are slow — ~3–5 min per transfer)
+- GPU optional but recommended (CPU runs are slow, ~3–5 min per transfer)
 
 ---
 
@@ -59,7 +59,7 @@ Open `http://localhost:5173` in your browser.
 
 1. Drop or click to upload a **content image** (the photo you want to stylize)
 2. Drop or click to upload a **style image** (the painting or artwork)
-3. Adjust the five **LWSW sliders** — higher early layers = finer texture; higher late layers = broader structural style
+3. Adjust the five **LWSW sliders**, higher early layers = finer texture; higher late layers = broader structural style
 4. Set **iterations** (300 is a good default; more iterations = better quality, slower)
 5. Set **style weight** (higher = more stylized, lower = closer to original content)
 6. Click **run style transfer**
@@ -96,7 +96,7 @@ Copy the printed URL and set `API_URL` in `nst-app/src/App.jsx` to it, then run 
 
 ```
 a1/
-├── main.py              # FastAPI backend — VGG-19, L-BFGS optimization
+├── main.py              # FastAPI backend, VGG-19, L-BFGS optimization
 ├── requirements.txt     # Python dependencies
 ├── App.jsx              # Standalone React component (reference copy)
 └── nst-app/
