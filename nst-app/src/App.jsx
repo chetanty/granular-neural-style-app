@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 const API_URL = import.meta.env.DEV ? "/api" : "";
 
@@ -130,7 +130,7 @@ function ResultPanel({ content, style, output, loading, progress }) {
   );
 }
 
-export default function App() {
+export default function App({ onDocs }) {
   const [content, setContent] = useState(null);
   const [style, setStyle] = useState(null);
   const [weights, setWeights] = useState([0.5, 0.3, 0.1, 0.05, 0.05]);
@@ -140,6 +140,18 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState(null);
+  const [serverBusy, setServerBusy] = useState(null);
+
+  useEffect(() => {
+    const check = () =>
+      fetch(`${API_URL}/health`)
+        .then((r) => r.json())
+        .then((d) => setServerBusy(d.busy))
+        .catch(() => setServerBusy(null));
+    check();
+    const id = setInterval(check, 5000);
+    return () => clearInterval(id);
+  }, []);
 
   const totalWeight = weights.reduce((a, b) => a + b, 0);
 
@@ -185,9 +197,22 @@ export default function App() {
 
   return (
     <div style={{ maxWidth: 760, margin: "0 auto", padding: "2rem 1.25rem" }}>
-      <div style={{ marginBottom: "2rem" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 500, margin: "0 0 4px" }}>granular neural style transfer</h1>
-        <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-secondary)" }}>per-layer style control via LWSW — upload, tune, run</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem" }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 500, margin: "0 0 4px" }}>granular neural style transfer</h1>
+          <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-secondary)" }}>per-layer style control via LWSW — upload, tune, run</p>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, paddingTop: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: serverBusy === null ? "var(--color-text-tertiary)" : serverBusy ? "var(--color-text-danger)" : "var(--color-text-success)", flexShrink: 0 }} />
+            <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+              {serverBusy === null ? "—" : serverBusy ? "unavailable" : "available"}
+            </span>
+          </div>
+          <button onClick={onDocs} style={{ fontSize: 13, padding: "6px 14px", background: "transparent", color: "var(--color-text-primary)", border: "0.5px solid var(--color-border-secondary)", borderRadius: "var(--border-radius-md)" }}>
+            docs
+          </button>
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: "1.5rem" }}>

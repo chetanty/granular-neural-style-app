@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp \"C:/Users/ctyag/Desktop/m/1.jpg\" \"C:/Users/ctyag/Downloads/a1/nst-app/public/docs/content.jpg\")",
+      "Bash(cp \"C:/Users/ctyag/Desktop/m/2.jpg\" \"C:/Users/ctyag/Downloads/a1/nst-app/public/docs/style.jpg\")",
+      "Bash(cp \"C:/Users/ctyag/Desktop/m/stylized.png\" \"C:/Users/ctyag/Downloads/a1/nst-app/public/docs/stylized.png\")",
+      "Bash(mkdir -p \"D:/MGBackup/chetanty.github.io/nst/docs\")",
+      "Bash(cp \"C:/Users/ctyag/Desktop/m/1.jpg\" \"D:/MGBackup/chetanty.github.io/nst/docs/content.jpg\")",
+      "Bash(cp \"C:/Users/ctyag/Desktop/m/2.jpg\" \"D:/MGBackup/chetanty.github.io/nst/docs/style.jpg\")",
+      "Bash(cp \"C:/Users/ctyag/Desktop/m/stylized.png\" \"D:/MGBackup/chetanty.github.io/nst/docs/stylized.png\")"
+    ]
+  }
+}

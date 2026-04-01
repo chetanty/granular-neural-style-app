@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 const API_URL = "http://localhost:8000";
 
@@ -140,6 +140,18 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState(null);
+  const [serverBusy, setServerBusy] = useState(null);
+
+  useEffect(() => {
+    const check = () =>
+      fetch(`${API_URL}/health`)
+        .then((r) => r.json())
+        .then((d) => setServerBusy(d.busy))
+        .catch(() => setServerBusy(null));
+    check();
+    const id = setInterval(check, 5000);
+    return () => clearInterval(id);
+  }, []);
 
   const totalWeight = weights.reduce((a, b) => a + b, 0);
 
@@ -185,9 +197,17 @@ export default function App() {
 
   return (
     <div style={{ maxWidth: 760, margin: "0 auto", padding: "2rem 1.25rem" }}>
-      <div style={{ marginBottom: "2rem" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 500, margin: "0 0 4px" }}>neural style transfer</h1>
-        <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-secondary)" }}>upload images, tune layer weights, run</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem" }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 500, margin: "0 0 4px" }}>neural style transfer</h1>
+          <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-secondary)" }}>upload images, tune layer weights, run</p>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, paddingTop: 4 }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: serverBusy === null ? "var(--color-text-tertiary)" : serverBusy ? "var(--color-text-danger)" : "var(--color-text-success)", flexShrink: 0 }} />
+          <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+            {serverBusy === null ? "—" : serverBusy ? "unavailable" : "available"}
+          </span>
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: "1.5rem" }}>
