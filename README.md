@@ -290,10 +290,4 @@ main.py
 
 ---
 
-## Status
-
-Under active development.
-
----
-
 Granular Neural Style Transfer brings precision and control to neural stylization.
