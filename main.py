@@ -10,16 +10,19 @@ import torchvision.models as models
 from PIL import Image
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List
+import os
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type"],
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -184,3 +187,12 @@ async def stylize(req: StyleRequest):
 @app.get("/health")
 def health():
     return {"status": "ok", "device": str(device)}
+
+
+DIST = os.path.join(os.path.dirname(__file__), "nst-app", "dist")
+if os.path.isdir(DIST):
+    app.mount("/assets", StaticFiles(directory=os.path.join(DIST, "assets")), name="assets")
+
+    @app.get("/{full_path:path}")
+    def serve_frontend(full_path: str):
+        return FileResponse(os.path.join(DIST, "index.html"))

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 
-const API_URL = "/api";
+const API_URL = import.meta.env.DEV ? "/api" : "";
 
 const LAYER_LABELS = [
   { id: "l1", name: "relu1_1", desc: "Fine texture" },
