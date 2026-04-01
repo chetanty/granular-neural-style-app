@@ -186,8 +186,8 @@ export default function App() {
   return (
     <div style={{ maxWidth: 760, margin: "0 auto", padding: "2rem 1.25rem" }}>
       <div style={{ marginBottom: "2rem" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 500, margin: "0 0 4px" }}>neural style transfer</h1>
-        <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-secondary)" }}>upload images, tune layer weights, run</p>
+        <h1 style={{ fontSize: 22, fontWeight: 500, margin: "0 0 4px" }}>granular neural style transfer</h1>
+        <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-secondary)" }}>per-layer style control via LWSW — upload, tune, run</p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: "1.5rem" }}>
