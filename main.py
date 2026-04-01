@@ -40,6 +40,8 @@ print(f"Loading VGG-19 on {device}...")
 cnn = models.vgg19(weights="DEFAULT").features.to(device).eval()
 print("VGG-19 ready.")
 
+is_busy = False
+
 
 def b64_to_tensor(b64: str) -> torch.Tensor:
     data = base64.b64decode(b64)
@@ -143,54 +145,79 @@ class StyleRequest(BaseModel):
 
 @app.post("/stylize")
 async def stylize(req: StyleRequest):
-    if len(req.style_layer_weights) != 5:
-        raise HTTPException(400, "style_layer_weights must have exactly 5 values")
-    total = sum(req.style_layer_weights)
-    if total == 0:
-        raise HTTPException(400, "weights must not all be zero")
-    normalized_weights = [w / total for w in req.style_layer_weights]
-
+    global is_busy
+    if is_busy:
+        raise HTTPException(503, "Server is busy — another request is being processed")
+    is_busy = True
     try:
-        content_img = b64_to_tensor(req.content_b64)
-        style_img   = b64_to_tensor(req.style_b64)
-    except Exception as e:
-        raise HTTPException(400, f"Invalid image data: {e}")
+        if len(req.style_layer_weights) != 5:
+            raise HTTPException(400, "style_layer_weights must have exactly 5 values")
+        total = sum(req.style_layer_weights)
+        if total == 0:
+            raise HTTPException(400, "weights must not all be zero")
+        normalized_weights = [w / total for w in req.style_layer_weights]
 
-    input_img = content_img.clone()
-    input_img.requires_grad_(True)
+        try:
+            content_img = b64_to_tensor(req.content_b64)
+            style_img   = b64_to_tensor(req.style_b64)
+        except Exception as e:
+            raise HTTPException(400, f"Invalid image data: {e}")
 
-    model, style_losses, content_losses = build_model(style_img, content_img, normalized_weights)
-    model.requires_grad_(False)
-    optimizer = optim.LBFGS([input_img])
+        input_img = content_img.clone()
+        input_img.requires_grad_(True)
 
-    run = [0]
-    while run[0] <= req.num_steps:
-        def closure():
-            with torch.no_grad():
-                input_img.clamp_(0, 1)
-            optimizer.zero_grad()
-            model(input_img)
-            s_score = sum(sl.loss for sl in style_losses) * req.style_weight
-            c_score = sum(cl.loss for cl in content_losses) * req.content_weight
-            loss = s_score + c_score
-            loss.backward()
-            run[0] += 1
-            return loss
-        optimizer.step(closure)
+        model, style_losses, content_losses = build_model(style_img, content_img, normalized_weights)
+        model.requires_grad_(False)
+        optimizer = optim.LBFGS([input_img])
 
-    with torch.no_grad():
-        input_img.clamp_(0, 1)
+        run = [0]
+        while run[0] <= req.num_steps:
+            def closure():
+                with torch.no_grad():
+                    input_img.clamp_(0, 1)
+                optimizer.zero_grad()
+                model(input_img)
+                s_score = sum(sl.loss for sl in style_losses) * req.style_weight
+                c_score = sum(cl.loss for cl in content_losses) * req.content_weight
+                loss = s_score + c_score
+                loss.backward()
+                run[0] += 1
+                return loss
+            optimizer.step(closure)
 
-    return {"output_b64": tensor_to_b64(input_img)}
+        with torch.no_grad():
+            input_img.clamp_(0, 1)
+
+        return {"output_b64": tensor_to_b64(input_img)}
+    finally:
+        is_busy = False
 
 
 @app.get("/")
 def root():
-    return {"name": "Granular Neural Style Transfer", "status": "running", "endpoints": ["/stylize", "/health"]}
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse("""
+<!DOCTYPE html>
+<html>
+<head><title>Granular NST API</title>
+<style>body{font-family:system-ui,sans-serif;max-width:480px;margin:80px auto;padding:0 20px;color:#111}
+h1{font-size:1.2rem;font-weight:500;margin-bottom:4px}
+p{color:#666;font-size:0.9rem;margin:0 0 24px}
+a{display:inline-block;font-size:0.85rem;color:#111;border:1px solid #ddd;padding:6px 14px;border-radius:6px;text-decoration:none;margin-right:8px}
+a:hover{background:#f5f5f5}
+</style></head>
+<body>
+<h1>Granular Neural Style Transfer</h1>
+<p>Backend API — per-layer VGG-19 style transfer</p>
+<a href="/docs">API docs</a>
+<a href="/health">health</a>
+</body>
+</html>
+""")
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "device": str(device)}
+    return {"status": "ok", "device": str(device), "busy": is_busy}
 
 
 DIST = os.path.join(os.path.dirname(__file__), "nst-app", "dist")
