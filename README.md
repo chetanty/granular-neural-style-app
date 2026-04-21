@@ -4,7 +4,7 @@
 
 Demo: https://chetantyagi.com/nst/
 
-Report: https://drive.google.com/file/d/1851d046CYIswlDDpk5-W-HsIPgTG-niI
+Report: [https://chetantyagi.com/report](https://chetantyagi.com/data/CMPUT414_FinalReport_Chetan_Linh.pdf)
 
 Granular Neural Style Transfer is a controllable neural style transfer system that allows you to decide how style is applied across different levels of visual detail.
 
